@@ -1,0 +1,12 @@
+{% extends "base.html" %}	
+{% block content %}
+	<h1 class="title">
+		Blog
+	</h1>
+	<br>
+	{% for e in entry %}
+		{{e.render() | safe}}
+		<br><br>
+	{% endfor %}	
+{% endblock %}
+		

@@ -1,0 +1,73 @@
+.title {
+	text-align: center;
+}
+
+.label {
+	text-align: right;
+	padding-right: 10px;
+	color: black;
+	font-size: 15px;
+}
+
+td {
+	padding-bottom: 5px;
+}
+
+.submit{
+	margin-left: 9px;
+}
+
+.title-input{
+	width: 320px;
+}
+
+.blog-input {
+	width: 320px;
+	height: 250px;
+}
+
+.date{
+	text-align: right;
+}
+
+.error {
+	color: red;
+}
+
+.nav-collapse .li {
+	list-style-type: none;
+}
+
+.navbar-nav {
+    display:table;
+    width:100%;
+    margin: 0;
+}
+
+.navbar-nav > li {
+    float:none;
+    display:table-cell;
+    text-align:center;
+}
+
+.post-heading {
+    position: relative;
+    border-bottom: 3px solid #666;
+}
+
+.post-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.post-date {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    color: #999;
+
+}
+
+.post-content {
+    margin-top: 5px;
+}
