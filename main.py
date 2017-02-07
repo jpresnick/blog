@@ -21,6 +21,7 @@ class Handler(webapp2.RequestHandler):
 		self.response.out.write(*a, **kw)
 
 	def render_str(self, template, **params):
+		params['user'] = self.user
 		return render_str(template, **params)
 
 	def render(self, template, **kw):
@@ -28,14 +29,33 @@ class Handler(webapp2.RequestHandler):
 
 	def initialize(self, *a, **kw):
 		webapp2.RequestHandler.initialize(self, *a, **kw)
-		uid = self.request.cookies.get('User.id')
-		self.user = uid and User.get_by_id(uid)
+		uid = self.request.cookies.get('user')
+		self.user = uid and User.all().filter('user_id =', uid).get()
 
 #displays 10 most recent blog posts on the main page ('/')
 class MainPage(Handler):
 	def get(self):
 		entry = db.GqlQuery("SELECT * FROM Entry ORDER BY created DESC LIMIT 10")
-		self.render("blog.html", entry = entry)
+		home_status = 'class=active'
+		self.render("blog.html", entry = entry, home_status = home_status, user_cookie = self.request.cookies.get('user'))
+	
+	def post(self):
+		entry = db.GqlQuery("SELECT * FROM Entry ORDER BY created DESC LIMIT 10")
+		home_status = 'class=active'
+		like = self.request.get("like")
+		likes = 0
+		if like:
+			likes += 1
+			post_id = self.request.get('id')
+			key = db.Key.from_path('Entry', int(post_id))
+			post = db.get(key)
+			if not post:
+				self.error(404)
+				return
+			post.likes = post.likes + 1
+			likes = post.likes
+			post.put()
+		self.render("blog.html", entry = entry, home_status = home_status, user_cookie = self.request.cookies.get('user'), like = like)
 
 #creates a user database
 class User(db.Model):
@@ -61,12 +81,8 @@ def valid_pw(name, pw, h):
 class Signup(Handler):
 	#gets user's registration criteria
 	def get(self):
-		username = self.request.get("username")
-		password = self.request.get("password")
-		verify = self.request.get("verify")
-		email = self.request.get("email")
-		self.render("signup.html", username = username, password = password, 
-								verify = verify, email = email)
+		signup_status = 'class=active'
+		self.render("signup.html", signup_status = signup_status)
 
 	def post(self):
 		username = self.request.get("username")
@@ -131,7 +147,8 @@ class Signup(Handler):
 
 class Login(Handler):
 	def get(self):
-		self.render("login.html")
+		login_status = 'class=active'
+		self.render("login.html", login_status = login_status)
 
 	def post(self):
 		username = self.request.get("username")
@@ -167,7 +184,7 @@ class Logout(Handler):
 		self.redirect("/signup")
 
 def get_cookie(self, name):
-	cookie = self.requet.cookies.get(name)
+	cookie = self.request.cookies.get(name)
 	return self.cookie
 
 class WelcomeHandler(Handler):
@@ -180,10 +197,13 @@ class Entry(db.Model):
 	content = db.TextProperty(required = True)
 	created = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
+	author = db.StringProperty(required = True)
+	likes = db.IntegerProperty()
+	comments = db.IntegerProperty()
 
-	def render(self):
+	def render(self, cookie=None, likes=0):
 		self._render_text = self.content.replace('\n', '<br>')
-		return render_str("post.html", p = self)
+		return render_str("post.html", p = self, user_cookie = cookie)
 
 class PermalinkHandler(Handler):
 	def get(self, post_id):
@@ -197,13 +217,15 @@ class PermalinkHandler(Handler):
 
 class NewPostHandler(Handler):
 	def get(self):
-		self.render("newpost.html")
+		newpost_status = 'class=active'
+		self.render("newpost.html", newpost_status = newpost_status)
 	def post(self):
 		subject = self.request.get("subject")
 		content = self.request.get("content")
+		author = self.request.cookies.get('user')
 
 		if subject and content:
-			e = Entry(subject = subject, content = content)
+			e = Entry(subject = subject, content = content, author = author, likes = 0)
 			e.put()
 			self.redirect('/' + str(e.key().id()))
 
@@ -211,6 +233,43 @@ class NewPostHandler(Handler):
 			error = "You must submit a subject and some content."
 			self.render("newpost.html", subject = subject, content = content, error = error)
 
+class EditPost(Handler):
+	def get(self):
+		post_id = self.request.get("id")
+		key = db.Key.from_path("Entry", int(post_id))
+		post = db.get(key)
+		if not post:
+			self.error(404)
+			return
+
+		self.render("editpost.html", post = post)
+
+	def post(self):
+		subject = self.request.get("subject")
+		content = self.request.get("content")
+		post_id = self.request.get("id")
+		key = db.Key.from_path("Entry", int(post_id))
+
+		delete = self.request.get("delete")
+		if delete:
+			post = db.get(key)
+			post.delete()
+			self.redirect('/confirm-delete')
+
+		elif subject and content:
+			post = db.get(key)
+			post.subject = subject
+			post.content = content
+			post.put()
+			self.redirect('/' + str(post.key().id()))
+
+		else: 
+			error = "You must submit a subject and some content."
+			self.render("newpost.html", subject = subject, content = content, error = error)
+
+class ConfirmDeleteHandler(Handler):
+	def get(self):
+		self.render("confirm-delete.html")
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								("/welcome", WelcomeHandler),
@@ -220,5 +279,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
 								('/newpost', NewPostHandler),
 								('/([0-9]+)', PermalinkHandler),
 								('/logout', Logout),
+								('/editpost/?', EditPost),
+								('/confirm-delete', ConfirmDeleteHandler),
 								],
     							debug=True)

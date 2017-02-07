@@ -50,6 +50,10 @@ td {
     text-align:center;
 }
 
+.post + .post {
+    margin-top: 15px;
+}
+
 .post-heading {
     position: relative;
     border-bottom: 3px solid #666;
@@ -65,9 +69,27 @@ td {
     right: 0px;
     bottom: 0px;
     color: #999;
+}
 
+.post-author {
+    color: #999;
 }
 
 .post-content {
     margin-top: 5px;
+}
+
+.edit {
+    color: #999;
+    font-size: 15px;
+    text-decoration: underline;
+}
+
+.comment {
+    width: 500px;
+}
+
+.like {
+    border-radius: 25px;
+    border: none;
 }

@@ -1,15 +1,35 @@
 <div class="post">
-  <div class="post-heading">
-    <div class="post-title">
-      {{p.subject}}
+    <div class="post-heading">
+        <div class="post-title">
+            {{p.subject}}&nbsp
+            {% if p.author == user_cookie %}
+                <a class="edit" href="/editpost/?id={{p.key().id()}}">edit</a>
+            {% endif %}
+        </div>
+        <div class="post-author">
+            by {{p.author}}
+        </div>
+        <div class="post-date">
+            {{p.created.strftime("%b %d, %Y")}}
+        </div>
     </div>
 
-    <div class="post-date">
-      {{p.created.strftime("%b %d, %Y")}}
+    <div class="post-content">
+        {{p._render_text | safe}}
     </div>
-  </div>
-
-  <div class="post-content">
-    {{p._render_text | safe}}
-  </div>
+    <div>
+        <br>
+        {{p.likes}} likes
+    </div>
+    <hr>
+    {% if not p.author == user_cookie %}
+    {{p.key().id()}}
+        <div>
+            <form method="post" action="/">
+                <input class="like" value="&#128077; like" type="submit" id="{{p.key().id()}}" name="like">
+            </form>
+        </div>
+    {% endif %}
+    <br>
+    <textarea class="comment" type="text" name="comment" placeholder="Write a comment..."></textarea>
 </div>

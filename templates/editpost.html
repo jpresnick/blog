@@ -1,0 +1,24 @@
+{% extends "base.html" %}	
+{% block content %}
+	<div class="container">
+		<form method="post"> 
+			<h1>Edit Post</h1>
+			<div class="row">
+				<div class="col-lg-6">
+					<div>Title</div>
+					<input class="title-input" type="text" name="subject" value="{{post.subject}}">
+				</div>
+				
+			</div>
+			<div class='row'>
+				<div class="col-lg-6">
+					<div>Content</div>
+					<textarea class="blog-input" name="content">{{post.content}}</textarea>
+				</div>
+			</div>
+			<input type="submit" value="Save Changes">
+			<input type="submit" value="Delete Post" name="delete">
+			<div class="error">{{error}}</div>
+		</form>
+	</div>
+{% endblock %}

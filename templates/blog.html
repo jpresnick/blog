@@ -1,12 +1,14 @@
 {% extends "base.html" %}	
 {% block content %}
+<div class="container">
 	<h1 class="title">
 		Blog
 	</h1>
 	<br>
 	{% for e in entry %}
-		{{e.render() | safe}}
+		{{e.render(user_cookie, likes) | safe}}
 		<br><br>
 	{% endfor %}	
+</div>
 {% endblock %}
 		

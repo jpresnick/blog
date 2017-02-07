@@ -15,18 +15,21 @@
 			<div class="container-fluid">
 				<div class="row">
 					<ul class="nav navbar-nav">
-						<li><a href="/">Home</a></li>
-						<li><a href="/signup">Signup</a></li>
-						<li><a href="/newpost">New Post</a></li>
+					{% if not user %}
+						<li {{home_status}}><a href="/">Home</a></li>
+						<li {{signup_status}}><a href="/signup">Signup</a></li>
+						<li {{login_status}}><a href="/login">Login</a></li>
+					{% else %}
+						<li {{home_status}}><a href="/">Home</a></li>
+						<li {{newpost_status}}><a href="/newpost">New Post</a></li>
 						<li><a href="#">My Posts</a></li>
-					{% if self.user %}
-						<li><a href="/login">Login</a></li>
-					{% endif %}
 						<li><a href="/logout">Logout</a></li>
+					{% endif %}
 					</ul>
 				</div>	
 			</div>
 		</nav>
+		<br>
 		<br>
 		<br>
 		{% block content %}
