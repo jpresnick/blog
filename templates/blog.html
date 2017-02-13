@@ -6,7 +6,7 @@
 	</h1>
 	<br>
 	{% for e in entry %}
-		{{e.render(user_cookie, likes) | safe}}
+		{{e.render(user_cookie, comments, like_unlike) | safe}}
 		<br><br>
 	{% endfor %}	
 </div>

@@ -85,8 +85,20 @@ td {
     text-decoration: underline;
 }
 
+.comment-text {
+    color: gray;
+}
+
 .comment {
+    padding-left: 50px;
+}
+
+.comment-box {
     width: 500px;
+}
+
+.comment-author {
+    font-size: 17px;
 }
 
 .like {

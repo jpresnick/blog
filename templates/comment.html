@@ -1,0 +1,16 @@
+ <div class="comment">
+ 	{% if c.post_id == post_id %}
+	 	<div class="comment-author">
+	 		{{c.author}}
+	 		{% if c.author == user_cookie %}&nbsp
+	 			<a class="edit" href="/edit-comment/?id={{c.key().id()}}">edit</a>
+	 		{% endif %}
+	 	</div>
+	 	<div class="comment-text">
+	 		{{c.content}}
+	 	</div>
+	 {% endif %}
+ 	<br>
+</div>
+
+

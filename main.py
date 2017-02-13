@@ -5,6 +5,7 @@ import re
 import random
 import string
 import hashlib
+import time
 
 from google.appengine.ext import db
 
@@ -32,38 +33,64 @@ class Handler(webapp2.RequestHandler):
 		uid = self.request.cookies.get('user')
 		self.user = uid and User.all().filter('user_id =', uid).get()
 
-#displays 10 most recent blog posts on the main page ('/')
+# displays 10 most recent blog posts on the main page ('/')
 class MainPage(Handler):
 	def get(self):
 		entry = db.GqlQuery("SELECT * FROM Entry ORDER BY created DESC LIMIT 10")
 		home_status = 'class=active'
-		self.render("blog.html", entry = entry, home_status = home_status, user_cookie = self.request.cookies.get('user'))
+		comments = db.GqlQuery("SELECT * FROM Comments ORDER BY created DESC")
+		self.render("blog.html", entry = entry, comments = comments, home_status = home_status, user_cookie = self.request.cookies.get('user'), like_unlike = "like")
 	
 	def post(self):
 		entry = db.GqlQuery("SELECT * FROM Entry ORDER BY created DESC LIMIT 10")
 		home_status = 'class=active'
-		like = self.request.get("like")
-		likes = 0
-		if like:
-			likes += 1
-			post_id = self.request.get('id')
-			key = db.Key.from_path('Entry', int(post_id))
-			post = db.get(key)
-			if not post:
-				self.error(404)
-				return
-			post.likes = post.likes + 1
-			likes = post.likes
-			post.put()
-		self.render("blog.html", entry = entry, home_status = home_status, user_cookie = self.request.cookies.get('user'), like = like)
+		post_id = self.request.get('postID')
+		comment = self.request.get("comment")
+		clicked_like = self.request.get("clicked_like")
+		author = self.request.cookies.get('user')
+		post = Entry.get_by_id(int(post_id))	
+		like_unlike = "like"
+		if not post:
+			self.error(404)
+			return
 
-#creates a user database
+		# allows the user to like/unlike posts, but not their own.
+		if clicked_like:
+			already_liked = False
+			for user in post.liked_by:
+				if user == self.user.key().id():
+					already_liked = True
+			if already_liked == True:
+				post.likes = post.likes - 1
+				post.liked_by.remove(self.user.key().id())
+				post.put()
+			else:
+				post.likes += 1
+				post.liked_by.append(self.user.key().id())
+				post.put()
+				like_unlike = "unlike"
+
+		# adds a new comment
+		if comment:
+			c = Comments(author = author, content = comment, post_id = int(post_id))
+			c.put()
+
+		# fetches existing comments
+		comments = db.GqlQuery("SELECT * FROM Comments ORDER BY created DESC")
+
+		time.sleep(0.2)
+		self.render("blog.html", entry = entry, comments = comments, home_status = home_status,
+								 user_cookie = self.request.cookies.get('user'), like_unlike = like_unlike)
+
+
+
+# creates a user database
 class User(db.Model):
 	user_id = db.StringProperty(required = True)
 	pw_hash = db.StringProperty(required = True)
 	email = db.StringProperty()
 
-#checks database to see if username exists
+# checks database to see if username exists
 def new_username(username):
 			u = User.all().filter('user_id =', username).get()
 			if u:
@@ -71,20 +98,21 @@ def new_username(username):
 			else: 
 				return True
 
-#checks to see if password is correct
+# checks to see if password is correct
 def valid_pw(name, pw, h):
 		    pw_hash, salt = h.split('|')
 		    if hashlib.sha256(name + pw + salt).hexdigest() == pw_hash:
 		        return True
 
-#signup page allows users to create an account ('/signup')
+# signup page allows users to create an account ('/signup')
 class Signup(Handler):
-	#gets user's registration criteria
+	# gets user's registration criteria
 	def get(self):
 		signup_status = 'class=active'
 		self.render("signup.html", signup_status = signup_status)
 
 	def post(self):
+		# gets inputs and checks that they are valid
 		username = self.request.get("username")
 		password = self.request.get("password")
 		verify = self.request.get("verify")
@@ -134,10 +162,10 @@ class Signup(Handler):
 				email_error = "That's not a valid email."
 				error = True
 		if error == False:
-			#add user to database
+			# add user to database
 			h = User(pw_hash = make_pw_hash(username, password), user_id = username, email = email)
 			h.put()
-			#set user cookie
+			# set user cookie
 			self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % str(h.user_id))
 			self.redirect("/welcome")	
 		else:
@@ -158,6 +186,7 @@ class Login(Handler):
 		password_error = ""
 		error = False
 
+		# check for valid login info
 		if new_username(username):
 			user_exists_error = "That username does not exist"
 			error = True
@@ -173,38 +202,46 @@ class Login(Handler):
 		else:
 			#set user cookie and redirect to welcome page
 			self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % str(u.user_id))
-			#self.redirect("/welcome")	
 			self.redirect("/welcome")
 
 class Logout(Handler):
 	def get(self):
-		#clears cookie
-		self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % "")
-		#self.redirect("/login")	
+		# clears cookie
+		self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % "")	
 		self.redirect("/signup")
 
-def get_cookie(self, name):
-	cookie = self.request.cookies.get(name)
-	return self.cookie
-
+# user is redirected here after login or signup
 class WelcomeHandler(Handler):
 	def get(self):
 		user_info = self.request.cookies.get('user')	
 		self.render("welcome.html", username = user_info)
 
+# table of blog posts
 class Entry(db.Model):
 	subject = db.StringProperty(required = True)
 	content = db.TextProperty(required = True)
 	created = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
 	author = db.StringProperty(required = True)
-	likes = db.IntegerProperty()
-	comments = db.IntegerProperty()
+	likes = db.IntegerProperty(default=0)
+	liked_by = db.ListProperty(int)
 
-	def render(self, cookie=None, likes=0):
+	def render(self, cookie=None, comments="", like_unlike=""):
 		self._render_text = self.content.replace('\n', '<br>')
-		return render_str("post.html", p = self, user_cookie = cookie)
+		return render_str("post.html", p = self, user_cookie = cookie, comments = comments, like_unlike = like_unlike)
+ # table of comments
+class Comments(db.Model):
+	author = db.StringProperty(required = True)
+	content = db.TextProperty(required = True)
+	post_id = db.IntegerProperty(required = True)
+	created = db.DateTimeProperty(auto_now_add = True)
+	last_modified = db.DateTimeProperty(auto_now = True)
 
+	def render(self, cookie=None, post_id=""):
+		self._render_text = self.content.replace('\n', '<br>')
+		return render_str("comment.html", c = self, user_cookie = cookie, post_id = post_id)
+
+# page to display an individual blog post
 class PermalinkHandler(Handler):
 	def get(self, post_id):
 		key = db.Key.from_path("Entry", int(post_id))
@@ -213,8 +250,9 @@ class PermalinkHandler(Handler):
 			self.error(404)
 			return
 		
-		self.render("permalink.html", post = post)
+		self.render("permalink.html", post = post, user_cookie = self.request.cookies.get('user'))
 
+# allows user to submit a new post if they are logged in
 class NewPostHandler(Handler):
 	def get(self):
 		newpost_status = 'class=active'
@@ -225,7 +263,7 @@ class NewPostHandler(Handler):
 		author = self.request.cookies.get('user')
 
 		if subject and content:
-			e = Entry(subject = subject, content = content, author = author, likes = 0)
+			e = Entry(subject = subject, content = content, author = author)
 			e.put()
 			self.redirect('/' + str(e.key().id()))
 
@@ -233,6 +271,7 @@ class NewPostHandler(Handler):
 			error = "You must submit a subject and some content."
 			self.render("newpost.html", subject = subject, content = content, error = error)
 
+# allows user to edit and delete their own posts
 class EditPost(Handler):
 	def get(self):
 		post_id = self.request.get("id")
@@ -242,22 +281,21 @@ class EditPost(Handler):
 			self.error(404)
 			return
 
-		self.render("editpost.html", post = post)
+		self.render("editpost.html", subject = post.subject, content = post.content)
 
 	def post(self):
 		subject = self.request.get("subject")
 		content = self.request.get("content")
 		post_id = self.request.get("id")
 		key = db.Key.from_path("Entry", int(post_id))
+		post = db.get(key)
 
 		delete = self.request.get("delete")
 		if delete:
-			post = db.get(key)
 			post.delete()
 			self.redirect('/confirm-delete')
 
 		elif subject and content:
-			post = db.get(key)
 			post.subject = subject
 			post.content = content
 			post.put()
@@ -265,11 +303,49 @@ class EditPost(Handler):
 
 		else: 
 			error = "You must submit a subject and some content."
-			self.render("newpost.html", subject = subject, content = content, error = error)
+			self.render("editpost.html", subject = subject, content = content, error = error)
 
+# this page allows a user to edit or delete one of their comments
+class EditCommentHandler(Handler):
+	def get(self):
+		comment_id = self.request.get("id")
+		key = db.Key.from_path("Comments", int(comment_id))
+		comment = db.get(key)
+		if not comment:
+			self.error(404)
+			return
+
+		self.render("edit-comment.html", content = comment.content)
+
+	def post(self):
+		content = self.request.get('content')
+		comment_id = self.request.get("id")
+		key = db.Key.from_path("Comments", int(comment_id))
+
+		delete = self.request.get("delete")
+		cancel = self.request.get("cancel")
+		if delete:
+			comment = db.get(key)
+			comment.delete()
+			self.redirect('/confirm-delete/?id=comment')
+
+		elif content:
+			comment = db.get(key)
+			comment.content = content
+			comment.put()
+			time.sleep(0.2)
+			self.redirect('/')
+		elif cancel:
+			self.redirect('/')
+		else: 
+			error = "Your comment is blank."
+			self.render("edit-comment.html", content = content, error = error)
+
+# user redirected here if they successfully delete one of their posts or comments
 class ConfirmDeleteHandler(Handler):
 	def get(self):
-		self.render("confirm-delete.html")
+		delete_type = self.request.get('id')
+		self.render("confirm-delete.html", type = delete_type)
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								("/welcome", WelcomeHandler),
@@ -280,6 +356,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
 								('/([0-9]+)', PermalinkHandler),
 								('/logout', Logout),
 								('/editpost/?', EditPost),
-								('/confirm-delete', ConfirmDeleteHandler),
+								('/confirm-delete/?', ConfirmDeleteHandler),
+								('/edit-comment/?', EditCommentHandler),
 								],
     							debug=True)

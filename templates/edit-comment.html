@@ -2,22 +2,16 @@
 {% block content %}
 	<div class="container">
 		<form method="post"> 
-			<h1>Edit Post</h1>
-			<div class="row">
-				<div class="col-lg-6">
-					<div>Title</div>
-					<input class="title-input" type="text" name="subject" value="{{subject}}">
-				</div>
-				
-			</div>
+			<h1>Edit Comment</h1>
 			<div class='row'>
 				<div class="col-lg-6">
-					<div>Content</div>
+					<div>Comment</div>
 					<textarea class="blog-input" name="content">{{content}}</textarea>
 				</div>
 			</div>
 			<input type="submit" value="Save Changes">
-			<input type="submit" value="Delete Post" name="delete">
+			<input type="submit" value="Cancel">
+			<input type="submit" value="Delete Comment" name="delete">
 			<div class="error">{{error}}</div>
 		</form>
 	</div>

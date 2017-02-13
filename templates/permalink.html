@@ -1,6 +1,6 @@
 {% extends "base.html" %}	
 {% block content %}
 	<div class="container">
-		<div>{{post.render() | safe}}</div>
+		<div>{{post.render(user_cookie) | safe}}</div>
 	</div>
 {% endblock %}

@@ -13,7 +13,6 @@
             {{p.created.strftime("%b %d, %Y")}}
         </div>
     </div>
-
     <div class="post-content">
         {{p._render_text | safe}}
     </div>
@@ -22,14 +21,29 @@
         {{p.likes}} likes
     </div>
     <hr>
-    {% if not p.author == user_cookie %}
-    {{p.key().id()}}
-        <div>
-            <form method="post" action="/">
-                <input class="like" value="&#128077; like" type="submit" id="{{p.key().id()}}" name="like">
-            </form>
-        </div>
+    {{liked}}
+    {% if user_cookie %}
+        {% if not p.author == user_cookie %}
+            <div>
+                <form method="post" action="/">
+                    <input type="hidden" name="postID" value="{{p.key().id()}}" />
+                    <input class="like" value="&#128077; {{like_unlike}}" type="submit" name="clicked_like"/>
+                </form>
+            </div>
+        {% endif %}
     {% endif %}
     <br>
-    <textarea class="comment" type="text" name="comment" placeholder="Write a comment..."></textarea>
+
+    {% for c in comments %}
+        {{c.render(user_cookie, p.key().id()) | safe}}
+    {% endfor %}
+
+    {% if user_cookie %}
+        <form method="post" action="/" class="comment">
+            <textarea class="comment-box" type="text" name="comment" placeholder="Write a comment..."></textarea>
+            <br>
+            <input type="hidden" name="postID" value="{{p.key().id()}}" />
+            <input class="like" type="submit" value="Submit">
+        </form>
+    {% endif %}
 </div>
