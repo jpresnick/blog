@@ -167,6 +167,8 @@ class Signup(Handler):
 			h.put()
 			# set user cookie
 			self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % str(h.user_id))
+			time.sleep(0.2)
+			time.sleep(0.2)
 			self.redirect("/welcome")	
 		else:
 			self.render('signup.html', username = username, email = email, 
