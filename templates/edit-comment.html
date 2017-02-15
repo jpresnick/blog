@@ -10,9 +10,11 @@
 				</div>
 			</div>
 			<input type="submit" value="Save Changes">
-			<input type="submit" value="Cancel">
-			<input type="submit" value="Delete Comment" name="delete">
+			<form method="post">
+				<input type="submit" value="Cancel" name="cancel">
+				<input type="submit" value="Delete Comment" name="delete">
 			<div class="error">{{error}}</div>
+		</form>
 		</form>
 	</div>
 {% endblock %}

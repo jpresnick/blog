@@ -293,9 +293,13 @@ class EditPost(Handler):
 		post = db.get(key)
 
 		delete = self.request.get("delete")
+		cancel = self.request.get("cancel")
 		if delete:
 			post.delete()
 			self.redirect('/confirm-delete')
+
+		elif cancel:
+			self.redirect('/')
 
 		elif subject and content:
 			post.subject = subject
@@ -331,14 +335,16 @@ class EditCommentHandler(Handler):
 			comment.delete()
 			self.redirect('/confirm-delete/?id=comment')
 
+		elif cancel:
+			self.redirect('/')
+
 		elif content:
 			comment = db.get(key)
 			comment.content = content
 			comment.put()
 			time.sleep(0.2)
 			self.redirect('/')
-		elif cancel:
-			self.redirect('/')
+		
 		else: 
 			error = "Your comment is blank."
 			self.render("edit-comment.html", content = content, error = error)
