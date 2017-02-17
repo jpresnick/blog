@@ -7,6 +7,9 @@ import string
 import hashlib
 import time
 
+from user import User
+from comments import Comments
+from entry import Entry
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -38,6 +41,10 @@ class Handler(webapp2.RequestHandler):
 
 # displays 10 most recent blog posts on the main page ('/')
 class MainPage(Handler):
+	'''
+	Renders the main page of the blog. 
+	This page contains the 10 most recent blog posts
+	'''
 	def get(self):
 		entry = db.GqlQuery("SELECT * FROM Entry ORDER BY created DESC LIMIT 10")
 		home_status = 'class=active'
@@ -62,7 +69,7 @@ class MainPage(Handler):
 		like_unlike = "like"
 		if not post:
 			self.error(404)
-			return
+			return self.redirect('/not_found')
 
 		# allows the user to like/unlike posts, but not their own.
 		if clicked_like:
@@ -97,14 +104,22 @@ class MainPage(Handler):
 
 
 # creates a user database
-class User(db.Model):
-	user_id = db.StringProperty(required=True)
-	pw_hash = db.StringProperty(required=True)
-	email = db.StringProperty()
+# class User(db.Model):
+# 	'''database table of registered users'''
+# 	user_id = db.StringProperty(required=True)
+# 	pw_hash = db.StringProperty(required=True)
+# 	email = db.StringProperty()
 
 
 # checks database to see if username exists
 def new_username(username):
+	'''
+	checks database to see if username exists
+ 	Args:
+        arg1 (data type: str): username you are checking
+    Returns:
+        True or False
+	'''
 	u = User.all().filter('user_id =', username).get()
 	if u:
 		return False
@@ -114,6 +129,15 @@ def new_username(username):
 
 # checks to see if password is correct
 def valid_pw(name, pw, h):
+	'''
+	checks database to see if password is correct
+ 	Args:
+        arg1 (data type: str): username you entered
+        arg2 (data type: str): password you entered
+        arg3 (data type: int): password hash value from database
+    Returns:
+        True or False
+	'''
 	pw_hash, salt = h.split('|')
 	if hashlib.sha256(name + pw + salt).hexdigest() == pw_hash:
 		return True
@@ -121,6 +145,7 @@ def valid_pw(name, pw, h):
 
 # signup page allows users to create an account ('/signup')
 class Signup(Handler):
+	'''signup page allows users to create an account ('/signup')'''
 	# gets user's registration criteria
 	def get(self):
 		signup_status = 'class=active'
@@ -138,18 +163,36 @@ class Signup(Handler):
 		EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
 		def valid_username(username):
+			'''
+			checks if username entered is valid
+			Args:
+        		arg1 (data type: str): username you entered
+			'''
+
 			return USER_RE.match(username)
 
 		def valid_password(password):
+			'''
+			checks if password entered is valid
+			Args:
+        		arg1 (data type: str): password you entered
+			'''
 			return PASSWORD_RE.match(password)
 
 		def valid_email(email):
+			'''
+			checks if email entered is valid
+			Args:
+        		arg1 (data type: str): email you entered
+			'''
 			return EMAIL_RE.match(email)
 
 		def make_salt():
+			'''makes 5 digit random salt value'''
 			return (''.join(random.choice(string.letters) for x in xrange(5)))
 
 		def make_pw_hash(name, pw):
+			'''makes password hash with username and salt'''
 			salt = make_salt()
 			h = hashlib.sha256(name + pw + salt).hexdigest()
 			return h + '|' + salt
@@ -198,6 +241,7 @@ class Signup(Handler):
 
 
 class Login(Handler):
+	'''user login page'''
 	def get(self):
 		login_status = 'class=active'
 		self.render("login.html", login_status=login_status)
@@ -232,6 +276,7 @@ class Login(Handler):
 
 
 class Logout(Handler):
+	'''erases user cookie, to log user out'''
 	def get(self):
 		# clears cookie
 		self.response.headers.add_header('Set-Cookie', 'user=%s; Path=/' % "")	
@@ -240,52 +285,54 @@ class Logout(Handler):
 
 # user is redirected here after login or signup
 class WelcomeHandler(Handler):
+	'''Welcome page. User is redirected here after login or signup'''
 	def get(self):
 		user_info = self.request.cookies.get('user')	
 		self.render("welcome.html", username=user_info)
 
 
 # table of blog posts
-class Entry(db.Model):
-	subject = db.StringProperty(required=True)
-	content = db.TextProperty(required=True)
-	created = db.DateTimeProperty(auto_now_add=True)
-	last_modified = db.DateTimeProperty(auto_now=True)
-	author = db.StringProperty(required=True)
-	likes = db.IntegerProperty(default=0)
-	liked_by = db.ListProperty(int)
+# class Entry(db.Model):
+# 	subject = db.StringProperty(required=True)
+# 	content = db.TextProperty(required=True)
+# 	created = db.DateTimeProperty(auto_now_add=True)
+# 	last_modified = db.DateTimeProperty(auto_now=True)
+# 	author = db.StringProperty(required=True)
+# 	likes = db.IntegerProperty(default=0)
+# 	liked_by = db.ListProperty(int)
 
-	def render(self, cookie=None, comments="", like_unlike=""):
-		self._render_text = self.content.replace('\n', '<br>')
-		return render_str("post.html", p=self, 
-										user_cookie=cookie, 
-										comments=comments, 
-										like_unlike=like_unlike)
+# 	def render(self, cookie=None, comments="", like_unlike=""):
+# 		self._render_text = self.content.replace('\n', '<br>')
+# 		return render_str("post.html", p=self, 
+# 										user_cookie=cookie, 
+# 										comments=comments, 
+# 										like_unlike=like_unlike)
 
 
 # table of comments
-class Comments(db.Model):
-	author = db.StringProperty(required=True)
-	content = db.TextProperty(required=True)
-	post_id = db.IntegerProperty(required=True)
-	created = db.DateTimeProperty(auto_now_add=True)
-	last_modified = db.DateTimeProperty(auto_now=True)
+# class Comments(db.Model):
+# 	author = db.StringProperty(required=True)
+# 	content = db.TextProperty(required=True)
+# 	post_id = db.IntegerProperty(required=True)
+# 	created = db.DateTimeProperty(auto_now_add=True)
+# 	last_modified = db.DateTimeProperty(auto_now=True)
 
-	def render(self, cookie=None, post_id=""):
-		self._render_text = self.content.replace('\n', '<br>')
-		return render_str("comment.html", c=self, 
-											user_cookie=cookie, 
-											post_id=post_id)
+# 	def render(self, cookie=None, post_id=""):
+# 		self._render_text = self.content.replace('\n', '<br>')
+# 		return render_str("comment.html", c=self, 
+# 											user_cookie=cookie, 
+# 											post_id=post_id)
 
 
 # page to display an individual blog post
 class PermalinkHandler(Handler):
+	'''page to display an individual blog post'''
 	def get(self, post_id):
 		key = db.Key.from_path("Entry", int(post_id))
 		post = db.get(key)
 		if not post:
 			self.error(404)
-			return
+			return self.redirect('/not_found')
 		
 		self.render("permalink.html", post=post, 
 										user_cookie=self.request.cookies.get('user'))
@@ -293,6 +340,7 @@ class PermalinkHandler(Handler):
 
 # allows user to submit a new post if they are logged in
 class NewPostHandler(Handler):
+	'''allows user to submit a new post if they are logged in'''
 	def get(self):
 		newpost_status = 'class=active'
 		self.render("newpost.html", newpost_status=newpost_status)
@@ -319,13 +367,14 @@ class NewPostHandler(Handler):
 
 # allows user to edit and delete their own posts
 class EditPost(Handler):
+	'''allows user to edit and delete their own posts'''
 	def get(self):
 		post_id = self.request.get("id")
 		key = db.Key.from_path("Entry", int(post_id))
 		post = db.get(key)
 		if not post:
 			self.error(404)
-			return
+			return self.redirect('/not_found')
 
 		if self.request.cookies.get('user') == post.author:
 			self.render("editpost.html", subject=post.subject, content=post.content)
@@ -343,14 +392,14 @@ class EditPost(Handler):
 		post = db.get(key)
 		if not post:
 			self.error(404)
-			return
+			return self.redirect('/not_found')
 
 		if self.request.cookies.get('user') == post.author:
 			delete = self.request.get("delete")
 			cancel = self.request.get("cancel")
 			if delete:
 				post.delete()
-				self.render('/confirm-delete')
+				self.redirect('/confirm-delete/?id=post.key().id()')
 
 			elif cancel:
 				self.redirect('/')
@@ -370,6 +419,7 @@ class EditPost(Handler):
 
 # this page allows a user to edit or delete one of their comments
 class EditCommentHandler(Handler):
+	'''this page allows a user to edit or delete one of their comments'''
 	def get(self):
 		if not self.user:
 			return self.redirect('/login')
@@ -380,7 +430,7 @@ class EditCommentHandler(Handler):
 
 		if not comment:
 			self.error(404)
-			return
+			return self.redirect('/not_found')
 
 		if self.request.cookies.get('user') == comment.author:
 			self.render("edit-comment.html", content=comment.content)
@@ -401,7 +451,7 @@ class EditCommentHandler(Handler):
 			cancel = self.request.get("cancel")
 			if delete:
 				comment.delete()
-				self.redirect('/confirm-delete/?id=comment')
+				self.redirect('/confirm-delete/?id=comment.key().id()')
 
 			elif cancel:
 				self.redirect('/')
@@ -423,14 +473,26 @@ class EditCommentHandler(Handler):
 
 # user redirected here if they successfully delete one of their posts or comments
 class ConfirmDeleteHandler(Handler):
+	'''
+	user redirected here if they successfully delete one of their 
+	posts or comments
+	'''
 	def get(self):
 		delete_type = self.request.get('id')
 		self.render("confirm-delete.html", type=delete_type)
 
 
 class EditErrorHandler(Handler):
+	'''displays an error if user tries to edit a comment/post that is
+	not theirs
+	'''
 	def get(self):
 		self.render("editerror.html")
+
+class NotFoundHandler(Handler):
+	'''displays an error page if the page cannot be found'''
+	def get(self):
+		self.render("not_found.html")
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								("/welcome", WelcomeHandler),
@@ -444,5 +506,6 @@ app = webapp2.WSGIApplication([('/', MainPage),
 								('/confirm-delete/?', ConfirmDeleteHandler),
 								('/edit-comment/?', EditCommentHandler),
 								('/editerror', EditErrorHandler),
+								('/not_found', NotFoundHandler),
 								],
     							debug=True)
