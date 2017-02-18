@@ -260,9 +260,10 @@ class Login(Handler):
 			error = True
 
 		u = User.all().filter('user_id =', username).get()
-		if not valid_pw(username, password, u.pw_hash):
-			password_error = "Incorrect password"
-			error = True
+		if u:
+			if not valid_pw(username, password, u.pw_hash):
+				password_error = "Incorrect password"
+				error = True
 
 		if error:
 			self.render('login.html', username=username, 
