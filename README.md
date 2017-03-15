@@ -1,5 +1,5 @@
 # blog
-Movie-Trailer_Website is a the first project in Udacity's [Full Stack Web Development Nanodegree] (https://www.udacity.com/course/full-stack-web-developer-nanodegree--nd004).
+Movie-Trailer_Website is the first project in Udacity's [Full Stack Web Development Nanodegree] (https://www.udacity.com/course/full-stack-web-developer-nanodegree--nd004).
 The blog is accessable at [https://blog-156720.appspot.com](https://blog-156720.appspot.com)
 
 ## Files
