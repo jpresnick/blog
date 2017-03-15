@@ -10,7 +10,7 @@ The main python file controling the back-end functionality of the blog.
 The stylesheet used to style the blog.
 
 ### - templates folder
-Contains all of the HTML files liked to in the blog.
+Contains all of the HTML files linked to in the blog.
 
 ## Requirements
 For Mac:
